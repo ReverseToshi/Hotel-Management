@@ -18,7 +18,7 @@ def login():
     # Login Window layout
     LoginWindow = tk.Tk()
     LoginWindow.title("Login")
-    LoginWindow.geometry("300x400")
+    LoginWindow.geometry("300x200")
     PasswordLabel = tk.Label(LoginWindow, text="Password").pack()
     PasswordBox = tk.Entry(LoginWindow, show="*")
     PasswordBox.pack()

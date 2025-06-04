@@ -1,133 +1,63 @@
 from sql import SQL
 import tkinter as tk
 from tkinter import ttk
-import time
-from Tab_pane import Tab_pane
 
 class Dashboard:
-    def __init__(self):
-        # Main window
-        self.Parent = tk.Tk()
-        self.Parent.title("Management")
-        self.Parent.geometry("1100x650")
-        self.Parent.resizable(0,0)
+    def __init__(self, parent):
+        self.parent = parent
+        self.Frame = ttk.Frame(self.parent)
+        self.con = SQL()
+        self.fill_dashboard()
+        self.Frame.pack(fill="both", expand=True)
 
 
-        # Menu ribbon
-        self.menu_bar = tk.Menu(self.Parent)
-        self.map_menu()
-        self.Parent.config(menu=self.menu_bar) 
-        self.menu_bar.config(bg="#72757a",
-                             activebackground="#484a4d")
-        
-        # Layout
-        self.wrapper = tk.Frame(self.Parent)
-        self.wrapper.pack(fill="both", expand=True)
+    def fill_dashboard(self):
+        paned_window = tk.PanedWindow(self.Frame, orient="horizontal", border=1, sashwidth=2)
+        overview_frame = tk.Frame(paned_window)
+        ovHeader = tk.Label(overview_frame, text="Today's Overview", font=("Arial", 22,"bold"))
+        ovHeader.pack(padx=10, pady=15, side="top", anchor="center")
+        self.ttl_rooms = tk.Label(overview_frame, font=("Arial", 15))
+        self.ttl_rooms.pack(padx=10, pady=5, anchor="center")
+        self.occ_rooms = tk.Label(overview_frame, font=("Arial", 15))
+        self.occ_rooms.pack(padx=10, pady=5, anchor="center")
+        self.avl_rooms = tk.Label(overview_frame,  font=("Arial", 15))
+        self.avl_rooms.pack(padx=10, pady=5, anchor="center")
+        self.occ_rate = tk.Label(overview_frame,  font=("Arial", 15))
+        self.occ_rate.pack(padx=10, pady=5, anchor="center")
 
-        # Header
-        self.Header = tk.Label(self.wrapper, 
-                                    bg="#2c3e50",
-                                    fg="#ffffff",
-                                    text="Hotel Management System",
-                                    font=("Arial", 20, "bold")
-                                    )
-        self.Header.pack(fill="x")
+        overview_frame.pack()
+        self.update_overview()
 
-        self.Pane = tk.PanedWindow(self.wrapper, orient="horizontal", sashwidth=2)
-        
+        pending = tk.Frame(paned_window)
+        pendingLabel = tk.Label(pending, text="Pending tasks",font=("Arial", 22,"bold"))
+        pendingLabel.pack(padx=10, pady=10)
+        self.pendingTasks = tk.Listbox(pending, width=250, height=300)
+        self.pendingTasks.pack(padx=10, pady=10, fill="both")
 
-        # Panes
-        self.left_pane()
-        self.right_pane()
+        scrollbar = tk.Scrollbar(self.Frame, orient=tk.VERTICAL)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Footer (now inside wrapper, safely below pane)
-        self.Footer = tk.LabelFrame(
-            self.wrapper,
-            bg="#2c3e50",
-            fg="white",
-            font=("Arial", 10, "bold")
-        )
-        self.Footer.pack(fill="x", side="bottom")
+        self.pendingTasks.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=self.pendingTasks.yview)
+        self.update_list()
+        pending.pack()
 
-        self.clock = tk.Label(self.Footer, text="HELLO", font=("Arial", 12), fg="white", bg="#2c3e50")
-        self.clock.pack(side="right")
-        self.update_clock()
+        paned_window.add(overview_frame)
+        paned_window.add(pending)
+        paned_window.pack(fill="both", expand=True)
 
-        self.Pane.pack(fill="both", expand=True)
-        
-        self.Parent.mainloop()
+    def update_list(self):
+        self.pendingTasks.delete(0, tk.END)
+        tasks = self.con.get_tasks()
+        for task in tasks:
+            task_str = f"{task[0]} | Due: {task[1]}"
+            self.pendingTasks.insert(tk.END ,task_str)
+        self.parent.after(2000, self.update_list)
 
-    def left_pane(self):
-        left = tk.Frame(self.Pane, bg="#9fa1a1", width=200)
-        left.pack_propagate(False)
-        # Top Frame
-        top = tk.Frame(left, bg="#9fa1a1")
-        QALabel = tk.Label(master=top, text="Quick Actions", font=("Arial", 14, "bold", "underline"), bg="#9fa1a1", height=0)
-        QALabel.pack(padx =10, pady= 5)
-
-        check_inBtn = tk.Button(top, text="Check-in Guest", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
-        check_inBtn.pack(padx=10, pady=5)
-
-        check_outBtn = tk.Button(top, text="Check-out Guest", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
-        check_outBtn.pack(padx=10, pady=5)
-
-        new_resBtn = tk.Button(top, text="New Reservation", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
-        new_resBtn.pack(padx=10, pady=5)
-        
-        # Bottom frame
-        bottom = tk.Frame(left, bg="#9fa1a1")
-        reportLabel = tk.Label(bottom, text="Reports", font=("Arial", 14, "bold","underline"), bg="#9fa1a1",height=0)
-        reportLabel.pack(padx=10, pady=5)
-
-        occupancyBtn = tk.Button(bottom, text="Occupancy Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
-        occupancyBtn.pack(padx=10, pady=5)
-        
-        RevenueBtn = tk.Button(bottom, text="Revenue Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
-        RevenueBtn.pack(padx=10, pady=5)
-        
-        GuestBtn = tk.Button(bottom, text="Guest Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
-        GuestBtn.pack(padx=10, pady=5)
-
-        top.pack()
-        ttk.Separator(left, orient="horizontal").pack(fill="x", pady=5)
-        bottom.pack()
-        self.Pane.add(left)
-
-    def right_pane(self):
-        right = tk.Frame(self.Pane, bg="#000000", width=900)
-        tabs = Tab_pane(right)
-
-        self.Pane.add(right)
-
-    def map_menu(self):
-        # File Menu
-        file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        file_menu.add_command(label="Export report", command=self.hotel_info)
-        file_menu.add_command(label="Backup Data")
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit")
-
-        # View Menu
-        view_menu = tk.Menu(self.menu_bar, tearoff=0)
-        view_menu.add_command(label="Refresh")
-        view_menu.add_command(label="Settings")
-
-        # Help Menu
-        help_menu = tk.Menu(self.menu_bar, tearoff=0)
-        help_menu.add_command(label="App Info")
-        help_menu.add_command(label="Hotel Info")
-        help_menu.add_command(label="User Manual")
-
-
-        self.menu_bar.add_cascade(label="File", menu=file_menu)
-        self.menu_bar.add_cascade(label="View", menu=view_menu)
-        self.menu_bar.add_cascade(label="Help", menu=help_menu)
-
-    def hotel_info(self):
-        info_window = tk.Toplevel(self.Parent)
-        info_window.title("Hotel Information")
-
-    def update_clock(self):
-        current_time = time.strftime("%d-%m-%Y\t%H:%M:%S")
-        self.clock.config(text=current_time)
-        self.Parent.after(1000, self.update_clock)
+    def update_overview(self):
+        overview = self.con.get_overview()
+        self.ttl_rooms.config(text=f"Total Rooms: {overview[0]}")
+        self.occ_rooms.config(text=f"Occupied Rooms: {overview[1]}")
+        self.avl_rooms.config(text=f"Available Rooms: {overview[2]}")
+        self.occ_rate.config(text=f"Occupancy Rate: {overview[3]}%")
+        self.parent.after(1000, self.update_overview)

@@ -1,5 +1,5 @@
 from login import login
-from dashboard import Dashboard
+from App import Application
 
 if login():
-    window = Dashboard()
+    window = Application()

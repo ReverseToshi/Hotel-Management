@@ -2,13 +2,14 @@ from sql import SQL
 import tkinter as tk
 from tkinter import ttk
 import time
+from Tab_pane import Tab_pane
 
 class Dashboard:
     def __init__(self):
         # Main window
         self.Parent = tk.Tk()
         self.Parent.title("Management")
-        self.Parent.geometry("1200x650")
+        self.Parent.geometry("1100x650")
         self.Parent.resizable(0,0)
 
 
@@ -32,7 +33,7 @@ class Dashboard:
                                     )
         self.Header.pack(fill="x")
 
-        self.Pane = tk.PanedWindow(self.wrapper, orient="horizontal", sashwidth=2, sashrelief="raised")
+        self.Pane = tk.PanedWindow(self.wrapper, orient="horizontal", sashwidth=2)
         
 
         # Panes
@@ -57,23 +58,44 @@ class Dashboard:
         self.Parent.mainloop()
 
     def left_pane(self):
-        left = tk.Frame(self.Pane, bg="#97a8a7", width=300)
+        left = tk.Frame(self.Pane, bg="#9fa1a1", width=200)
+        left.pack_propagate(False)
+        # Top Frame
+        top = tk.Frame(left, bg="#9fa1a1")
+        QALabel = tk.Label(master=top, text="Quick Actions", font=("Arial", 14, "bold", "underline"), bg="#9fa1a1", height=0)
+        QALabel.pack(padx =10, pady= 5)
 
-        top = tk.Frame(left)
-        QALabel = tk.Label(master=top, text="Quick Actions", font=("Arial", 15, "bold"), bg="#97a8a7", height=0)
-        QALabel.pack()
+        check_inBtn = tk.Button(top, text="Check-in Guest", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        check_inBtn.pack(padx=10, pady=5)
 
-        bottom = tk.Frame(left)
-        reportLabel = tk.Label(bottom, text="Reports", font=("Arial", 15, "bold"), bg="#97a8a7",height=200)
-        reportLabel.pack()
+        check_outBtn = tk.Button(top, text="Check-out Guest", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        check_outBtn.pack(padx=10, pady=5)
+
+        new_resBtn = tk.Button(top, text="New Reservation", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        new_resBtn.pack(padx=10, pady=5)
         
+        # Bottom frame
+        bottom = tk.Frame(left, bg="#9fa1a1")
+        reportLabel = tk.Label(bottom, text="Reports", font=("Arial", 14, "bold","underline"), bg="#9fa1a1",height=0)
+        reportLabel.pack(padx=10, pady=5)
+
+        occupancyBtn = tk.Button(bottom, text="Occupancy Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        occupancyBtn.pack(padx=10, pady=5)
+        
+        RevenueBtn = tk.Button(bottom, text="Revenue Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        RevenueBtn.pack(padx=10, pady=5)
+        
+        GuestBtn = tk.Button(bottom, text="Guest Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        GuestBtn.pack(padx=10, pady=5)
+
         top.pack()
+        ttk.Separator(left, orient="horizontal").pack(fill="x", pady=5)
         bottom.pack()
         self.Pane.add(left)
 
     def right_pane(self):
         right = tk.Frame(self.Pane, bg="#000000", width=900)
-
+        tabs = Tab_pane(right)
 
         self.Pane.add(right)
 

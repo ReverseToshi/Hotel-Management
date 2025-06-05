@@ -78,3 +78,32 @@ class SQL:
         cursor.close()
         self.con.commit()
         return tasks
+    
+    def get_reservations(self, guestID=None, date=None):
+        cursor = self.con.cursor()
+        if guestID == None and date == None:
+            cursor.execute("SELECT * FROM Reservations")
+        elif guestID != None and date != None:
+            cursor.execute("SELECT * FROM Reservations WHERE guestID = ? AND check_in=? OR check_out = ?", (guestID, date, date))
+        elif guestID ==None and date !=None:
+            cursor.execute("SELECT * FROM Reservations WHERE check_in = ? or check_out = ?", (date, date))
+        else:
+            cursor.execute("SELECT * FROM Reservations WHERE guestID = ?", (guestID,))
+        results = cursor.fetchall()
+        cursor.close()
+        self.con.commit()
+        return results
+    
+    def change_reservation(self, reservationID, guestID, roomID, check_out, status):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("UPDATE Reservations SET guestID=?, roomID=?, check_out=?, status=? WHERE reservationID=?", (guestID, roomID, check_out, status, reservationID))
+            cursor.close()
+            self.con.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Failed: ", e)
+            cursor.close()
+            return False
+            
+        

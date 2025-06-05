@@ -12,7 +12,7 @@ class Dashboard:
 
 
     def fill_dashboard(self):
-        paned_window = tk.PanedWindow(self.Frame, orient="horizontal", border=1, sashwidth=2)
+        paned_window = tk.PanedWindow(self.Frame, orient="horizontal", border=3, sashwidth=2)
         overview_frame = tk.Frame(paned_window)
         ovHeader = tk.Label(overview_frame, text="Today's Overview", font=("Arial", 22,"bold"))
         ovHeader.pack(padx=10, pady=15, side="top", anchor="center")

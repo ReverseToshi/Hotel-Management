@@ -1,7 +1,7 @@
 from tkinter import ttk
 import tkinter as tk
 from sql import SQL
-from Dashboard import Dashboard as Dash
+from dashboard import Dashboard as Dash
 from Reservation import Reservation as Res
 
 class Tab_pane:

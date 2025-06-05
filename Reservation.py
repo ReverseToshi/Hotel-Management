@@ -1,6 +1,7 @@
 from sql import SQL
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import tkcalendar as tkcal
 
 class Reservation:
@@ -29,7 +30,7 @@ class Reservation:
         search_label.pack(padx=5, pady=10, fill="x", expand=True, side="left") 
         self.guest_bar = tk.Entry(self.guest_frame, font=("Arial", 12), bg="#ffffff", fg="#000000")
         self.guest_bar.pack(padx=5, pady=10, fill="x", expand=True, side="left")
-        self.searchBtn = tk.Button(self.guest_frame, text="Search", font=("Arial", 10), bg="#ffffff", fg="#000000", height=1)
+        self.searchBtn = tk.Button(self.guest_frame, text="Search", font=("Arial", 10), bg="#ffffff", fg="#000000", height=1, command=self.search_guest)
         self.searchBtn.pack(padx=10, pady=10, expand=False, side = "right")
 
         self.guest_frame.pack(fill="both", expand=True)
@@ -53,10 +54,137 @@ class Reservation:
         self.top_Pane.add(self.filter_frame)
 
     def create_bottom_pane(self):
-        self.Treeview = ResList(self.bottom_Pane)
+        self.Treeview = ResList(self.bottom_Pane, self.con, self.on_select)
+
+        self.Add_NewBtn = tk.Button(self.bottom_Pane, text="Add New", font=("Arial", 8), bg="#03A503", fg="#000000", height=1)
+        self.Add_NewBtn.pack(padx=5, pady=2, side="right")
+        
+        self.cancelBtn = tk.Button(self.bottom_Pane, text="Cancel", font=("Arial", 8), bg="#ffffff", fg="#000000", height=1, state="disabled", command=self.canel_select)
+        self.cancelBtn.pack(padx=5, pady=2, side="right")
+
+        self.editBtn = tk.Button(self.bottom_Pane, text="Edit", font=("Arial", 8), bg="#ffffff", fg="#000000", height=1, state="disabled", command=self.edit_row)
+        self.editBtn.pack(padx=5, pady=2, side="right")
+
+    def search_guest(self):
+        guestID = self.guest_bar.get()
+        self.Treeview.fillTree(guestID=guestID)
+        
+    def on_select(self, selected_row = None):
+        if selected_row:
+            self.editBtn.config(state="active")
+            self.cancelBtn.config(state="active")
+            self.selected_row = selected_row
+        else:
+            self.editBtn.config(state="disabled")
+            self.cancelBtn.config(state="disabled")
+            self.selected_row = None
+
+    def edit_row(self, event):
+        new_window = tk.Toplevel(self.parent)
+        new_window.title("Edit Reservation")
+
+        # Separate the StringVars so you can access them
+        guest_var = tk.StringVar(value=self.selected_row[1])
+        room_var = tk.StringVar(value=self.selected_row[2])
+        date_var = tk.StringVar(value=self.selected_row[4])
+        status_var = tk.StringVar(value=self.selected_row[5])
+
+        def on_submit():
+            guest = guest_var.get()
+            room = room_var.get()
+            date = date_var.get()
+            status = status_var.get()
+            if self.con.change_reservation(reservationID= self.selected_row[0], guestID= guest, roomID = room, check_out=date, status=status):
+                self.Treeview.fillTree()
+                new_window.destroy()
+            else:
+                messagebox("Error", "Operation failed. Please enter correct details")
+
+        # Reserv ID (Label)
+        tk.Label(new_window, text="Reservation ID: ", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Label(new_window, text=self.selected_row[0], font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        # Guest ID
+        tk.Label(new_window, text="Guest ID:", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Entry(new_window, textvariable=guest_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        # Room No
+        tk.Label(new_window, text="Room No:", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Entry(new_window, textvariable=room_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        # Check-in (display only)
+        tk.Label(new_window, text="Check-In:", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Label(new_window, text=self.selected_row[3], font=("Arial", 10, "bold")).pack()
+
+        # Check-out (DateEntry)
+        tk.Label(new_window, text="Check-Out:", font=("Arial", 10, "bold")).pack(padx=5)
+        tkcal.DateEntry(new_window, textvariable=date_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        # Status
+        tk.Label(new_window, text="Status(Pending/Booked):", font=("Arial", 10, "bold")).pack(padx=5)
+        dropdown = ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly")
+        dropdown.pack(padx=5, pady=5)
+        dropdown.current(0)
+
+        # Submit button
+        tk.Button(new_window, text="Submit", font=("Arial", 10, "bold"), command=on_submit).pack(pady=10)
+
+    def canel_select(self, event):
+        self.selected_row = None
+        self.Treeview._unselect()
+
+    def add_new(self, event):
+        new_window = tk.Toplevel(self.parent)
+        
+
 
 class ResList:
-    def __init__(self, parent):
+    def __init__(self, parent, con, callback):
         self.parent = parent
-        self.tree = ttk.Treeview(self.parent, columns=("ID", "Guest Name", "Room Number", "Check-in Date", "Check-out Date", "Status"), show="headings")
-        
+        self.callback = callback
+        self.tree = ttk.Treeview(self.parent)
+        self.scrollbar = ttk.Scrollbar(self.parent, orient="vertical", command=self.tree.yview)
+        self.define_columns()
+        self.con = con
+        self.scrollbar.pack(side="right",fill="y")
+        self.tree.pack(fill="both", expand=True)
+        self.tree.config(yscrollcommand=self.scrollbar.set)
+        self.fillTree()
+        self.tree.bind("<<TreeviewSelect>>", self._handle_selection)
+
+    def define_columns(self):
+        self.tree["columns"]= ("ID", "Guest ID", "Room No.", "Check-in", "Check-Out", "Status")
+        self.tree.column("#0", width=0, stretch=tk.NO)
+        self.tree.column("ID", anchor=tk.CENTER, width=80)
+        self.tree.column("Guest ID", anchor=tk.CENTER, width=100)
+        self.tree.column("Room No.", anchor=tk.CENTER, width=100)
+        self.tree.column("Check-in", anchor=tk.CENTER, width=120)
+        self.tree.column("Check-Out", anchor=tk.CENTER, width=120)
+        self.tree.column("Status", anchor=tk.CENTER, width=100)
+
+        self.tree.heading("#0", text="", anchor=tk.CENTER)
+        self.tree.heading("ID", text="ID", anchor=tk.CENTER)
+        self.tree.heading("Guest ID", text="Guest ID", anchor=tk.CENTER)
+        self.tree.heading("Room No.", text="Room No.", anchor=tk.CENTER)
+        self.tree.heading("Check-in", text="Check-in", anchor=tk.CENTER)
+        self.tree.heading("Check-Out", text="Check-Out", anchor=tk.CENTER)
+        self.tree.heading("Status", text="Status", anchor=tk.CENTER)
+
+    def fillTree(self, guestID = None, date = None):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        results = self.con.get_reservations(guestID, date)
+        for row in results:
+            reservID, guestID, roomNo, check_in, check_out, status = row
+            self.tree.insert("", "end", values=(reservID, guestID, roomNo, check_in, check_out, status))
+
+    def _handle_selection(self, event):
+        selected_rows = self.tree.selection()
+        if selected_rows:
+            values = self.tree.item(selected_rows[0], "values")
+            self.callback(values)
+        else:
+            self.callback(None)
+    
+    def _unselect(self):
+        self.tree.selection_set()

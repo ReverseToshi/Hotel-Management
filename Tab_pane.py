@@ -3,6 +3,8 @@ import tkinter as tk
 from sql import SQL
 from dashboard import Dashboard as Dash
 from Reservation import Reservation as Res
+from Room_management import Room
+from Guest_management import Guest
 
 class Tab_pane:
     def __init__(self, pane):
@@ -16,14 +18,14 @@ class Tab_pane:
     def create_tabs(self):
         dashboard = Dash(self.window)
         reservation = Res(self.window)
-        room_mgmt = ttk.Frame(self.window)
-        guest_mgmt = ttk.Frame(self.window)
+        room_mgmt = Room(self.window)
+        guest_mgmt = Guest(self.window)
         tasks = ttk.Frame(self.window)
 
         self.window.add(dashboard.Frame, text="Dashboard")
         self.window.add(reservation.Frame, text="Reservations")
-        self.window.add(room_mgmt, text="Room Management")
-        self.window.add(guest_mgmt, text="Guest Management")
+        self.window.add(room_mgmt.Frame, text="Room Management")
+        self.window.add(guest_mgmt.Frame, text="Guest Management")
         self.window.add(tasks, text="Task Management")
 
     

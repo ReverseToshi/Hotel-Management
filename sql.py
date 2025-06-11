@@ -106,4 +106,39 @@ class SQL:
             cursor.close()
             return False
             
+    def make_reservation(self, reservationID, guestID, roomID, check_in, check_out, status):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("INSERT INTO Reservations(reservationID, guestID, roomID, check_in, check_out, status) VALUES(?,?,?,?,?,?)", (reservationID, guestID, roomID, check_in, check_out, status))
+            cursor.close()
+            self.con.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Failed: ", e)
+            cursor.close()
+            return False
         
+    def delete_reservation(self, reservationID):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("DELETE FROM Reservations WHERE reservationID = ?", (reservationID,))
+            cursor.close()
+            self.con.commit()
+        except sqlite3.Error as e:
+            print("Failed: ", e)
+            cursor.close()
+    
+    def get_rooms(self, status, roomType):
+        cursor = self.con.cursor()
+        if status=="All Rooms" and roomType=="All Rooms":
+            cursor.execute("SELECT * FROM Rooms")
+        elif status!="All Rooms" and roomType=="All Rooms":
+            cursor.execute("SELECT * FROM Rooms WHERE status=?", (status,))
+        elif status=="All Rooms" and roomType!="All Rooms":
+            cursor.execute("SELECT * FROM Rooms WHERE roomType=?", (roomType,))
+        else:
+            cursor.execute("SELECT * FROM Rooms WHERE status=? AND roomType=?", (status, roomType))
+        
+        results = cursor.fetchall()
+        cursor.close()
+        return results

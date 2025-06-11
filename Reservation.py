@@ -56,14 +56,17 @@ class Reservation:
     def create_bottom_pane(self):
         self.Treeview = ResList(self.bottom_Pane, self.con, self.on_select)
 
-        self.Add_NewBtn = tk.Button(self.bottom_Pane, text="Add New", font=("Arial", 8), bg="#03A503", fg="#000000", height=1)
+        self.Add_NewBtn = tk.Button(self.bottom_Pane, text="Add New", font=("Arial", 8), bg="#03A503", fg="#000000", height=1, command=self.add_new)
         self.Add_NewBtn.pack(padx=5, pady=2, side="right")
         
-        self.cancelBtn = tk.Button(self.bottom_Pane, text="Cancel", font=("Arial", 8), bg="#ffffff", fg="#000000", height=1, state="disabled", command=self.canel_select)
+        self.cancelBtn = tk.Button(self.bottom_Pane, text="Cancel", font=("Arial", 8), bg="#ffffff", fg="#000000", height=1, state="disabled", command=self.cancel_select)
         self.cancelBtn.pack(padx=5, pady=2, side="right")
 
         self.editBtn = tk.Button(self.bottom_Pane, text="Edit", font=("Arial", 8), bg="#ffffff", fg="#000000", height=1, state="disabled", command=self.edit_row)
         self.editBtn.pack(padx=5, pady=2, side="right")
+
+        self.deleteBtn = tk.Button(self.bottom_Pane, text="Delete", font=("Arial", 8), bg="#ffffff", fg="#000000", height=1, state="disabled", command=self.delete_row)
+        self.deleteBtn.pack(padx=5, pady=2, side="right")
 
     def search_guest(self):
         guestID = self.guest_bar.get()
@@ -73,13 +76,15 @@ class Reservation:
         if selected_row:
             self.editBtn.config(state="active")
             self.cancelBtn.config(state="active")
+            self.deleteBtn.config(state="active")
             self.selected_row = selected_row
         else:
             self.editBtn.config(state="disabled")
             self.cancelBtn.config(state="disabled")
+            self.deleteBtn.config(state="disabled")
             self.selected_row = None
 
-    def edit_row(self, event):
+    def edit_row(self):
         new_window = tk.Toplevel(self.parent)
         new_window.title("Edit Reservation")
 
@@ -129,13 +134,63 @@ class Reservation:
         # Submit button
         tk.Button(new_window, text="Submit", font=("Arial", 10, "bold"), command=on_submit).pack(pady=10)
 
-    def canel_select(self, event):
+    def cancel_select(self):
         self.selected_row = None
         self.Treeview._unselect()
 
-    def add_new(self, event):
+    def add_new(self):
         new_window = tk.Toplevel(self.parent)
+
+        reserve_var = tk.StringVar()
+        guest_var = tk.StringVar()
+        room_var = tk.StringVar()
+        check_in_var = tk.StringVar()
+        check_out_var = tk.StringVar()
+        status_var = tk.StringVar()
+
+        def on_submit():
+            reserve = reserve_var.get()
+            guest = guest_var.get()
+            room = room_var.get()
+            check_in = check_in_var.get()
+            check_out = check_out_var.get()
+            status = status_var.get()
+            if check_in=="":
+                check_in=None
+            if check_out=="":
+                check_out=None
+            if self.con.make_reservation(reservationID= reserve, guestID= guest, roomID = room, check_in = check_in, check_out=check_out, status=status):
+                self.Treeview.fillTree()
+                new_window.destroy()
+            else:
+                messagebox("Error", "Operation failed. Please enter correct details")
         
+        tk.Label(new_window, text="Reservation ID:", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Entry(new_window, textvariable=reserve_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        tk.Label(new_window, text="Guest ID:", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Entry(new_window, textvariable=guest_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        tk.Label(new_window, text="Room No.:", font=("Arial", 10, "bold")).pack(padx=5)
+        tk.Entry(new_window, textvariable=room_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        tk.Label(new_window, text="Check-in date:", font=("Arial", 10, "bold")).pack(padx=5)
+        tkcal.DateEntry(new_window, textvariable=check_in_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        tk.Label(new_window, text="Check-out date:", font=("Arial", 10, "bold")).pack(padx=5)
+        tkcal.DateEntry(new_window, textvariable=check_out_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+
+        tk.Label(new_window, text="Status(Pending/Booked):", font=("Arial", 10, "bold")).pack(padx=5)
+        dropdown = ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly")
+        dropdown.pack(padx=5, pady=5)
+        dropdown.current(0)
+
+        tk.Button(new_window, text="Submit", font=("Arial", 10, "bold"), command=on_submit).pack(pady=10)
+
+    def delete_row(self):
+        reservationID = self.selected_row[0]
+        self.con.delete_reservation(reservationID)
+        self.Treeview.fillTree()
 
 
 class ResList:

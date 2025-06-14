@@ -142,3 +142,32 @@ class SQL:
         results = cursor.fetchall()
         cursor.close()
         return results
+    
+    def get_guests(self, query=None):
+        cursor=self.con.cursor()
+        if query==None:
+            cursor.execute("SELECT * FROM Customers")
+        else:
+            query = f"%{query}%"
+            cursor.execute("""SELECT * FROM Customers
+                            WHERE customerID LIKE ?
+                                OR firstName LIKE ?
+                                OR lastName LIKE ?
+                                OR phoneNumber = ?
+                                OR email LIKE ?""", (query, query, query, query, query))
+        results = cursor.fetchall()
+        cursor.close()
+        return results
+    
+    def add_guest(self, id, first, last, age, email, phone):
+        cursor = self.con.cursor()
+        if id=="" or first=="" or last=="":
+            return False
+        try:
+            cursor.execute("INSERT INTO Customers(customerID, firstName, lastName, age, email, phoneNumber) VALUES(?,?,?,?,?,?)", (id, first, last, age, email, phone))
+            cursor.close()
+            self.con.commit()
+        except sqlite3.Error as e:
+            print(f"Error: {e}")
+            return False
+        return True

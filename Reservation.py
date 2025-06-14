@@ -88,7 +88,6 @@ class Reservation:
         new_window = tk.Toplevel(self.parent)
         new_window.title("Edit Reservation")
 
-        # Separate the StringVars so you can access them
         guest_var = tk.StringVar(value=self.selected_row[1])
         room_var = tk.StringVar(value=self.selected_row[2])
         date_var = tk.StringVar(value=self.selected_row[4])
@@ -99,40 +98,49 @@ class Reservation:
             room = room_var.get()
             date = date_var.get()
             status = status_var.get()
-            if self.con.change_reservation(reservationID= self.selected_row[0], guestID= guest, roomID = room, check_out=date, status=status):
+            if self.con.change_reservation(
+                reservationID=self.selected_row[0],
+                guestID=guest,
+                roomID=room,
+                check_out=date,
+                status=status,
+            ):
                 self.Treeview.fillTree()
                 new_window.destroy()
             else:
-                messagebox("Error", "Operation failed. Please enter correct details")
+                messagebox.showerror("Error", "Operation failed. Please enter correct details")
 
-        # Reserv ID (Label)
-        tk.Label(new_window, text="Reservation ID: ", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Label(new_window, text=self.selected_row[0], font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        font_style = ("Arial", 10, "bold")
+
+        # Reservation ID (readonly label)
+        tk.Label(new_window, text="Reservation ID:", font=font_style).grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(new_window, text=self.selected_row[0], font=font_style).grid(row=0, column=1, sticky="w", padx=5, pady=5)
 
         # Guest ID
-        tk.Label(new_window, text="Guest ID:", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Entry(new_window, textvariable=guest_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        tk.Label(new_window, text="Guest ID:", font=font_style).grid(row=1, column=0, sticky="e", padx=5, pady=5)
+        tk.Entry(new_window, textvariable=guest_var, font=font_style).grid(row=1, column=1, sticky="w", padx=5, pady=5)
 
         # Room No
-        tk.Label(new_window, text="Room No:", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Entry(new_window, textvariable=room_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        tk.Label(new_window, text="Room No:", font=font_style).grid(row=2, column=0, sticky="e", padx=5, pady=5)
+        tk.Entry(new_window, textvariable=room_var, font=font_style).grid(row=2, column=1, sticky="w", padx=5, pady=5)
 
-        # Check-in (display only)
-        tk.Label(new_window, text="Check-In:", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Label(new_window, text=self.selected_row[3], font=("Arial", 10, "bold")).pack()
+        # Check-In (readonly label)
+        tk.Label(new_window, text="Check-In:", font=font_style).grid(row=3, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(new_window, text=self.selected_row[3], font=font_style).grid(row=3, column=1, sticky="w", padx=5, pady=5)
 
-        # Check-out (DateEntry)
-        tk.Label(new_window, text="Check-Out:", font=("Arial", 10, "bold")).pack(padx=5)
-        tkcal.DateEntry(new_window, textvariable=date_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        # Check-Out (DateEntry)
+        tk.Label(new_window, text="Check-Out:", font=font_style).grid(row=4, column=0, sticky="e", padx=5, pady=5)
+        tkcal.DateEntry(new_window, textvariable=date_var, font=font_style).grid(row=4, column=1, sticky="w", padx=5, pady=5)
 
-        # Status
-        tk.Label(new_window, text="Status(Pending/Booked):", font=("Arial", 10, "bold")).pack(padx=5)
-        dropdown = ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly")
-        dropdown.pack(padx=5, pady=5)
-        dropdown.current(0)
+        # Status (Combobox)
+        tk.Label(new_window, text="Status (Pending/Booked):", font=font_style).grid(row=5, column=0, sticky="e", padx=5, pady=5)
+        dropdown = ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly", font=font_style)
+        dropdown.grid(row=5, column=1, sticky="w", padx=5, pady=5)
+        dropdown.set(status_var.get())  # set current value properly
 
-        # Submit button
-        tk.Button(new_window, text="Submit", font=("Arial", 10, "bold"), command=on_submit).pack(pady=10)
+        # Submit button spanning both columns, centered
+        tk.Button(new_window, text="Submit", font=font_style, command=on_submit).grid(row=6, column=0, columnspan=2, pady=10)
+
 
     def cancel_select(self):
         self.selected_row = None
@@ -155,37 +163,54 @@ class Reservation:
             check_in = check_in_var.get()
             check_out = check_out_var.get()
             status = status_var.get()
-            if check_in=="":
-                check_in=None
-            if check_out=="":
-                check_out=None
-            if self.con.make_reservation(reservationID= reserve, guestID= guest, roomID = room, check_in = check_in, check_out=check_out, status=status):
+            if check_in == "":
+                check_in = None
+            if check_out == "":
+                check_out = None
+            if self.con.make_reservation(
+                reservationID=reserve,
+                guestID=guest,
+                roomID=room,
+                check_in=check_in,
+                check_out=check_out,
+                status=status,
+            ):
                 self.Treeview.fillTree()
                 new_window.destroy()
             else:
-                messagebox("Error", "Operation failed. Please enter correct details")
-        
-        tk.Label(new_window, text="Reservation ID:", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Entry(new_window, textvariable=reserve_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+                messagebox.showerror("Error", "Operation failed. Please enter correct details")
 
-        tk.Label(new_window, text="Guest ID:", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Entry(new_window, textvariable=guest_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        # Use a consistent font for all widgets
+        font_style = ("Arial", 10, "bold")
 
-        tk.Label(new_window, text="Room No.:", font=("Arial", 10, "bold")).pack(padx=5)
-        tk.Entry(new_window, textvariable=room_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        # Labels and their corresponding widgets
+        labels = [
+            "Reservation ID:",
+            "Guest ID:",
+            "Room No.:",
+            "Check-in date:",
+            "Check-out date:",
+            "Status (Pending/Booked):",
+        ]
+        widgets = [
+            tk.Entry(new_window, textvariable=reserve_var, font=font_style),
+            tk.Entry(new_window, textvariable=guest_var, font=font_style),
+            tk.Entry(new_window, textvariable=room_var, font=font_style),
+            tkcal.DateEntry(new_window, textvariable=check_in_var, font=font_style),
+            tkcal.DateEntry(new_window, textvariable=check_out_var, font=font_style),
+            ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly", font=font_style),
+        ]
 
-        tk.Label(new_window, text="Check-in date:", font=("Arial", 10, "bold")).pack(padx=5)
-        tkcal.DateEntry(new_window, textvariable=check_in_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        status_var.set("Pending")  # Set default for dropdown
 
-        tk.Label(new_window, text="Check-out date:", font=("Arial", 10, "bold")).pack(padx=5)
-        tkcal.DateEntry(new_window, textvariable=check_out_var, font=("Arial", 10, "bold")).pack(padx=5, pady=5)
+        for i, (text, widget) in enumerate(zip(labels, widgets)):
+            tk.Label(new_window, text=text, font=font_style).grid(row=i, column=0, sticky="e", padx=5, pady=5)
+            widget.grid(row=i, column=1, sticky="w", padx=5, pady=5)
 
-        tk.Label(new_window, text="Status(Pending/Booked):", font=("Arial", 10, "bold")).pack(padx=5)
-        dropdown = ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly")
-        dropdown.pack(padx=5, pady=5)
-        dropdown.current(0)
+        # Submit button spans two columns and centered
+        submit_btn = tk.Button(new_window, text="Submit", font=font_style, command=on_submit)
+        submit_btn.grid(row=len(labels), column=0, columnspan=2, pady=10)
 
-        tk.Button(new_window, text="Submit", font=("Arial", 10, "bold"), command=on_submit).pack(pady=10)
 
     def delete_row(self):
         reservationID = self.selected_row[0]

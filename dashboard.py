@@ -50,7 +50,7 @@ class Dashboard:
         self.pendingTasks.delete(0, tk.END)
         tasks = self.con.get_tasks()
         for task in tasks:
-            task_str = f"{task[0]} | Due: {task[1]}"
+            task_str = f"{task[0]} | Due: {task[2]}"
             self.pendingTasks.insert(tk.END ,task_str)
         self.parent.after(2000, self.update_list)
 

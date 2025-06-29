@@ -68,16 +68,20 @@ class SQL:
         self.con.commit()
         return overview
 
-    def get_tasks(self):
+    def get_tasks(self, date=None,time=None):
         cursor = self.con.cursor()
-        cursor.execute("SELECT description, dueDate FROM Tasks WHERE status='Pending'")
-        tasks = []
+        if date==None:
+            cursor.execute("SELECT * FROM Tasks WHERE status='Pending'")
+        else:
+            if time==None:
+                time="00:00:00"
+            end_time = date+" "+"23:59:59"
+            start_time = date+" "+time
+            cursor.execute("SELECT * FROM Tasks WHERE dueDate>=? AND dueDate <?", (start_time, end_time))
         result = cursor.fetchall()
-        for row in result:
-            tasks.append((row[0], row[1]))
         cursor.close()
         self.con.commit()
-        return tasks
+        return result
     
     def get_reservations(self, guestID=None, date=None):
         cursor = self.con.cursor()
@@ -170,4 +174,26 @@ class SQL:
         except sqlite3.Error as e:
             print(f"Error: {e}")
             return False
+        return True
+    
+    def add_task(self, description, created, due, status):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("INSERT INTO Tasks(description, createdAt, dueDate, status) VALUES(?,?,?,?)", (description, created, due, status))
+            self.con.commit()
+        except sqlite3.Error as e:
+            print(f"Error: {e}")
+            return False
+        cursor.close()
+        return True
+    
+    def change_status(self, description, created, due, status):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("UPDATE Tasks SET status=? WHERE description=? AND createdAt=? AND dueDate =?", (status, description, created, due))
+            self.con.commit()
+        except sqlite3.Error as e:
+            print(f"Error: {e}")
+            return False
+        cursor.close()
         return True

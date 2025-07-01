@@ -7,7 +7,7 @@ from tkinter import messagebox
 
 def parse_date(date):
     parse_date=datetime.strptime(date, "%d/%m/%y")
-    return parse_date.strftime("%d-%m-%Y")
+    return parse_date.strftime("%Y-%m-%d")
 
 
 class Task:
@@ -156,7 +156,9 @@ class Task:
         if self.con.change_status(self.selected[0], self.selected[1], self.selected[2], status=status):
             self.tasks._unselect()
             self.on_select(None)
-            self.tasks.fillTree()
+            dateEntry = parse_date(self.due_date_var.get())
+            timeEntry = self.hour_var.get()+":"+self.minute_var.get()+":00"
+            self.tasks.fillTree(date=dateEntry, time=timeEntry)
 
 
 class TaskList:

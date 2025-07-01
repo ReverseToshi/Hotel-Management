@@ -83,16 +83,19 @@ class SQL:
         self.con.commit()
         return result
     
-    def get_reservations(self, guestID=None, date=None):
+    def get_reservations(self, reservationID = None, guestID=None, date=None):
         cursor = self.con.cursor()
-        if guestID == None and date == None:
-            cursor.execute("SELECT * FROM Reservations")
-        elif guestID != None and date != None:
-            cursor.execute("SELECT * FROM Reservations WHERE guestID = ? AND check_in=? OR check_out = ?", (guestID, date, date))
-        elif guestID ==None and date !=None:
-            cursor.execute("SELECT * FROM Reservations WHERE check_in = ? or check_out = ?", (date, date))
+        if reservationID:
+            cursor.execute("SELECT * FROM Reservations WHERE reservationID=?",(reservationID,))
         else:
-            cursor.execute("SELECT * FROM Reservations WHERE guestID = ?", (guestID,))
+            if guestID == None and date == None:
+                cursor.execute("SELECT * FROM Reservations")
+            elif guestID != None and date != None:
+                cursor.execute("SELECT * FROM Reservations WHERE guestID = ? AND check_in=? OR check_out = ?", (guestID, date, date))
+            elif guestID ==None and date !=None:
+                cursor.execute("SELECT * FROM Reservations WHERE check_in = ? or check_out = ?", (date, date))
+            else:
+                cursor.execute("SELECT * FROM Reservations WHERE guestID = ?", (guestID,))
         results = cursor.fetchall()
         cursor.close()
         self.con.commit()
@@ -197,3 +200,65 @@ class SQL:
             return False
         cursor.close()
         return True
+    
+    def get_reservation_id_for_checkout(self):
+        cursor = self.con.cursor()
+        cursor.execute("SELECT reservationID FROM Reservations WHERE check_out IS NULL AND check_in IS NOT NULL")
+        rows = cursor.fetchall()
+        cursor.close()
+        results = [row[0] for row in rows]
+        return results
+    
+    def get_reservation_id_for_checkin(self):
+        cursor = self.con.cursor()
+        cursor.execute("SELECT reservationID FROM Reservations WHERE check_in IS NULL")
+        rows = cursor.fetchall()
+        cursor.close()
+        results = [row[0] for row in rows]
+        return results
+    
+    def get_price(self, roomID):
+        cursor = self.con.cursor()
+        cursor.execute("SELECT price FROM Rooms WHERE roomID=?", (roomID,))
+        result = cursor.fetchone()
+        cursor.close()
+        return result
+    
+    def check_out(self, reservationID, check_out):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("UPDATE Reservations SET check_out = ? ,status='Completed' WHERE reservationID = ?", (check_out, reservationID))
+            self.con.commit()
+        except sqlite3.Error as e:
+            print(f"Error: {e}")
+            return False
+        cursor.close()
+        return True
+    
+    def check_in(self, reservationID, check_in):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("UPDATE Reservations SET check_in = ?, status='Completed' WHERE reservationID = ?", (check_in, reservationID))
+            self.con.commit()
+        except sqlite3.Error as e:
+            print(f"Error: {e}")
+            return False
+        cursor.close()
+        return True
+    
+    def get_next_reservation_id(self):
+        cursor = self.con.cursor()
+        try:
+            cursor.execute("SELECT MAX(CAST(SUBSTR(reservationID, 2) AS INTEGER)) FROM Reservations")
+            result = cursor.fetchone()
+            max_id_num = result[0] if result[0] is not None else 0
+            next_id = f"R{max_id_num + 1:03}"
+            return next_id
+        except sqlite3.Error as e:
+            print(f"Error generating Reservation ID: {e}")
+            return None
+        finally:
+            cursor.close()
+
+    def get_occupancy_data(self):
+        

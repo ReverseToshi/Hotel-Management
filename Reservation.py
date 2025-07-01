@@ -200,7 +200,9 @@ class Reservation:
             tkcal.DateEntry(new_window, textvariable=check_out_var, font=font_style),
             ttk.Combobox(new_window, textvariable=status_var, values=["Pending", "Booked"], state="readonly", font=font_style),
         ]
-
+        
+        widgets[4].delete(0, 'end')
+        
         status_var.set("Pending")  # Set default for dropdown
 
         for i, (text, widget) in enumerate(zip(labels, widgets)):

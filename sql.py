@@ -36,8 +36,9 @@ class SQL:
         else:
             if old_hash==row[0]:
                 hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
-                cursor.execute("INSERT INTO Password(Hashed) VALUES(?)", (hashed_password))
+                cursor.execute("INSERT INTO Password(Hashed_Password) VALUES(?)", (hashed_password,))
                 cursor.close()
+                self.con.commit()
                 return True
         
         cursor.close()

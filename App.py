@@ -88,10 +88,10 @@ class Application:
         occupancyBtn = tk.Button(bottom, text="Occupancy Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100, command=self.occupancy)
         occupancyBtn.pack(padx=10, pady=5)
         
-        RevenueBtn = tk.Button(bottom, text="Revenue Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        RevenueBtn = tk.Button(bottom, text="Revenue Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100, command=self.revenue)
         RevenueBtn.pack(padx=10, pady=5)
         
-        GuestBtn = tk.Button(bottom, text="Guest Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100)
+        GuestBtn = tk.Button(bottom, text="Guest Report", bg="#548A75", activebackground="#69b595", borderwidth=0, font=("Arial", 12), width=100, command=self.guest_report)
         GuestBtn.pack(padx=10, pady=5)
 
         top.pack()
@@ -279,11 +279,86 @@ class Application:
         tk.Label(window, text="Start Date:", font=self.font).grid(row=0, column=0, padx=5, pady=5, sticky="e")
         DateEntry(window, textvariable=startVar, font=self.font).grid(row=0, column=1, padx=5, pady=5, sticky="e")
         tk.Label(window, text="End Date: ", font=self.font).grid(row=0, column=2, padx=5 ,pady=5, sticky="e")
-        DateEntry(window, text="End Date: ", font=self.font, textvariable=endVar).grid(row=0, column=3, padx=5 ,pady=5, sticky="e")
+        DateEntry(window, font=self.font, textvariable=endVar).grid(row=0, column=3, padx=5 ,pady=5, sticky="e")
 
         def generate_report():
             startDate = parse_date(startVar.get())
             endDate = parse_date(endVar.get())
+            df = self.con.get_occupancy_data(start=startDate, end=endDate)
+            tree_frame = tk.Frame(window)
+            tree_frame.grid(row=1, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+
+            # Expand the frame with the window
+            window.grid_rowconfigure(1, weight=1)
+            window.grid_columnconfigure(0, weight=1)
+
+            tree = Tree(tree_frame, df)
 
         tk.Button(window, text="Generate report", font=self.font, command=generate_report).grid(row=0, column=4, columnspan=2, padx=5, pady=5, sticky="we")
 
+    def revenue(self):
+        window = tk.Toplevel(self.Parent)
+        startVar = tk.StringVar()
+        endVar = tk.StringVar()
+
+        tk.Label(window, text="Start Date:", font=self.font).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        DateEntry(window, textvariable=startVar, font=self.font).grid(row=0, column=1, padx=5, pady=5, sticky="e")
+        tk.Label(window, text="End Date: ", font=self.font).grid(row=0, column=2, padx=5 ,pady=5, sticky="e")
+        DateEntry(window, font=self.font, textvariable=endVar).grid(row=0, column=3, padx=5 ,pady=5, sticky="e")
+
+        def generate_report():
+            startDate = parse_date(startVar.get())
+            endDate = parse_date(endVar.get())
+            df = self.con.get_revenue_data(start=startDate, end=endDate)
+            tree_frame = tk.Frame(window)
+            tree_frame.grid(row=1, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
+
+            # Expand the frame with the window
+            window.grid_rowconfigure(1, weight=1)
+            window.grid_columnconfigure(0, weight=1)
+
+            tree = Tree(tree_frame, df)
+
+        tk.Button(window, text="Generate report", font=self.font, command=generate_report).grid(row=0, column=4, columnspan=2, padx=5, pady=5, sticky="we")
+
+    def guest_report(self):
+        window = tk.Toplevel(self.Parent)
+        df = self.con.generate_guest_report()
+        tree = Tree(window, df)
+
+class Tree:
+    def __init__(self, parent, dataframe):
+        self.Parent = parent
+        self.df = dataframe
+        self.tree = ttk.Treeview(self.Parent)
+        self.scrollbar = ttk.Scrollbar(self.Parent, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=self.scrollbar.set)
+
+        # Use the same row, adjacent columns
+        self.tree.grid(row=1, column=0, sticky="nsew")
+        self.scrollbar.grid(row=1, column=1, sticky="ns")
+
+        # Set weight so the Treeview expands properly
+        self.Parent.grid_rowconfigure(0, weight=0)
+        self.Parent.grid_columnconfigure(0, weight=0)
+        self.Parent.grid_columnconfigure(1, weight=0)  # scrollbar should not expand
+
+
+        self.define_columns()
+
+        for row in self.df.itertuples(index=False):
+            self.tree.insert("", "end", values=row)
+
+    def define_columns(self):
+        self.tree["columns"] = list(self.df.columns)
+        self.tree["show"] = "headings"
+        for heading in self.df.columns:
+            self.tree.heading(heading, text=heading)
+             # Estimate width: max of header and column content lengths
+            max_len = max(
+                [len(str(val)) for val in self.df[heading].values] + [len(heading)]
+            )
+            pixel_width = max(80, min(max_len * 8, 300))  # clamp width between 80 and 300
+            self.tree.column(heading, anchor="center", width=pixel_width)
+
+        

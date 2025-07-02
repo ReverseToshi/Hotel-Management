@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+import pandas as pd
 
 class SQL:
     def __init__(self):
@@ -260,5 +261,113 @@ class SQL:
         finally:
             cursor.close()
 
-    def get_occupancy_data(self):
+    def get_occupancy_data(self, start, end):    
+        # Execute the occupancy report query
+        query ="""
+        WITH RECURSIVE all_dates(occupancy_date) AS (
+            SELECT DATE(?)
+            UNION ALL
+            SELECT DATE(occupancy_date, '+1 day')
+            FROM all_dates
+            WHERE occupancy_date < DATE(?)
+        )
+        SELECT
+            d.occupancy_date AS 'Date',
+            COUNT(DISTINCT r.roomID) AS 'Occupied Rooms',
+            (SELECT COUNT(*) FROM Rooms) AS 'Total Rooms',
+            ROUND(
+                (COUNT(DISTINCT r.roomID) * 100.0) / 
+                (SELECT COUNT(*) FROM Rooms),
+                2
+            ) AS 'Occupancy Rate (%)'
+        FROM all_dates d
+        LEFT JOIN Reservations r
+            ON d.occupancy_date >= DATE(r.check_in)
+            AND d.occupancy_date < DATE(r.check_out)
+            AND r.status != 'Cancelled'
+        GROUP BY d.occupancy_date
+        ORDER BY d.occupancy_date;
+        """
+        # Load results into DataFrame
+        report_df = pd.read_sql_query(query, self.con, params=(start, end))
         
+        return report_df
+    
+    def get_revenue_data(self, start, end):
+        query = """
+        WITH RECURSIVE all_dates(occupancy_date) AS (
+            SELECT DATE(?)
+            UNION ALL
+            SELECT DATE(occupancy_date, '+1 day')
+            FROM all_dates
+            WHERE occupancy_date < DATE(?)
+        ),
+        revenue_data AS (
+            SELECT
+                d.occupancy_date,
+                rm.price
+            FROM all_dates d
+            JOIN Reservations res
+                ON d.occupancy_date >= DATE(res.check_in)
+                AND d.occupancy_date < DATE(res.check_out)
+                AND res.status != 'Cancelled'
+            JOIN Rooms rm ON res.roomID = rm.roomID
+            GROUP BY d.occupancy_date, res.roomID
+        )
+        SELECT
+            occupancy_date AS 'Date',
+            COALESCE(SUM(price), 0) AS 'Daily Revenue',
+            COALESCE(ROUND(AVG(price), 2), 0) AS 'Average Room Rate',
+            COUNT(*) AS 'Rooms Occupied'
+        FROM revenue_data
+        GROUP BY occupancy_date
+        ORDER BY occupancy_date;
+        """
+
+        # Load results into DataFrame
+        report_df = pd.read_sql_query(query, self.con, params=(start, end))
+        
+        return report_df
+    
+    def generate_guest_report(self):
+        query = """
+        WITH guest_reservations AS (
+            SELECT
+                c.customerID,
+                c.firstName || ' ' || c.lastName AS fullName,
+                c.age,
+                c.email,
+                c.phoneNumber,
+                r.reservationID,
+                r.check_in,
+                r.check_out,
+                r.status,
+                rm.roomType,
+                rm.price,
+                -- Calculate nights stayed
+                CAST(JULIANDAY(r.check_out) - JULIANDAY(r.check_in) AS INTEGER) AS nights,
+                -- Calculate reservation revenue
+                ((JULIANDAY(r.check_out) - JULIANDAY(r.check_in)) * rm.price) AS revenue
+            FROM Customers c
+            LEFT JOIN Reservations r ON c.customerID = r.guestID
+            LEFT JOIN Rooms rm ON r.roomID = rm.roomID
+            WHERE r.status != 'Cancelled' OR r.status IS NULL
+        )
+        SELECT
+            customerID AS 'Customer ID',
+            fullName AS 'Full Name',
+            age AS 'Age',
+            email AS 'Email',
+            phoneNumber AS 'Phone',
+            COUNT(reservationID) AS 'Total Reservations',
+            COALESCE(SUM(nights), 0) AS 'Total Nights',
+            COALESCE(SUM(revenue), 0) AS 'Total Revenue',
+            COALESCE(MIN(check_in), 'Never') AS 'First Stay',
+            COALESCE(MAX(check_out), 'Never') AS 'Last Stay'
+        FROM guest_reservations
+        GROUP BY customerID
+        ORDER BY fullName;
+        """
+        
+        df = pd.read_sql_query(query, self.con)
+        return df
